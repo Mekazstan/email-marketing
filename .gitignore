@@ -1,0 +1,79 @@
+# Ignore Python compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+
+# Ignore virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Ignore IDE and editor-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# Ignore local development files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Ignore build and distribution files
+build/
+dist/
+*.egg-info/
+*.egg
+*.whl
+
+# Ignore log files
+*.log
+logs/
+
+# Ignore cache files
+.cache/
+.pytest_cache/
+
+# Ignore database files
+*.db
+*.sqlite3
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore macOS system files
+.DS_Store
+
+# Ignore Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Ignore pytest coverage reports
+.coverage
+htmlcov/
+
+# Ignore mypy cache
+.mypy_cache/
+
+# Ignore dependency directories (if not using a package manager)
+node_modules/
+bower_components/
+
+# Ignore compiled static files (if applicable)
+staticfiles/
+mediafiles/
+
+# Ignore other temporary files
+*.tmp
+*.bak
+*.pid
+*.lock
+
+

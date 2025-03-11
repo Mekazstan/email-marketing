@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,24 +9,27 @@ import { CheckCircle2 } from "lucide-react"
 
 export default function SendEmailsPage() {
   const router = useRouter()
-  const [sending, setSending] = useState(false)
-  const [complete, setComplete] = useState(false)
+  const [stage, setStage] = useState<"confirm" | "sending" | "sent">("confirm")
   const [progress, setProgress] = useState(0)
 
-  const handleSend = () => {
-    setSending(true)
+  useEffect(() => {
+    if (stage === "sending") {
+      const interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 100) {
+            clearInterval(interval)
+            setStage("sent")
+            return 100
+          }
+          return prev + 10
+        })
+      }, 300)
+      return () => clearInterval(interval)
+    }
+  }, [stage])
 
-    // Simulate sending emails
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setComplete(true)
-          return 100
-        }
-        return prev + 10
-      })
-    }, 300)
+  const handleSend = () => {
+    setStage("sending")
   }
 
   const handleViewFollowUp = () => {
@@ -37,47 +40,42 @@ export default function SendEmailsPage() {
     <div className="container flex items-center justify-center min-h-screen">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Send Emails</CardTitle>
+          <CardTitle>Send Email</CardTitle>
           <CardDescription>
-            {!sending
-              ? "Review and confirm before sending emails to your target companies"
-              : complete
-                ? "All emails have been sent successfully!"
-                : "Sending emails to your target companies..."}
+            {stage === "confirm"
+              ? "Review and confirm before sending the email"
+              : stage === "sending"
+                ? "Sending email to your prospect..."
+                : "Email sent successfully!"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {!sending ? (
+          {stage === "confirm" ? (
             <div className="text-center p-6 space-y-4">
-              <p className="text-lg">Are you sure you want to send these emails?</p>
-              <p className="text-sm text-muted-foreground">This will send personalized emails to 3 companies.</p>
+              <p className="text-lg">Are you sure you want to send this email?</p>
+              <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
             </div>
           ) : (
             <div className="space-y-4">
               <Progress value={progress} className="h-2 w-full" />
-
-              {complete ? (
+              {stage === "sent" && (
                 <div className="flex flex-col items-center justify-center p-6 space-y-4">
                   <CheckCircle2 className="h-16 w-16 text-green-500" />
-                  <p className="text-lg font-medium">Emails sent successfully!</p>
+                  <p className="text-lg font-medium">Email sent successfully!</p>
                 </div>
-              ) : (
-                <p className="text-center text-sm text-muted-foreground">
-                  Sending email {Math.ceil(progress / 10)} of 10...
-                </p>
               )}
             </div>
           )}
         </CardContent>
         <CardFooter className="flex justify-center gap-4">
-          {!sending ? (
+          {stage === "confirm" ? (
             <>
               <Button variant="outline" onClick={() => router.back()}>
                 Back
               </Button>
-              <Button onClick={handleSend}>Send Emails</Button>
+              <Button onClick={handleSend}>Send Email</Button>
             </>
-          ) : complete ? (
+          ) : stage === "sent" ? (
             <Button onClick={handleViewFollowUp}>View Follow-Up Advice</Button>
           ) : null}
         </CardFooter>

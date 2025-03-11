@@ -4,38 +4,20 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Download } from "lucide-react"
 
 // Sample data - in a real app, this would come from your backend
-const sampleData = [
-  {
-    id: 1,
-    name: "Company A",
-    engagement: "Low",
-    followUp:
-      "Consider a follow-up call within 3-5 days. Focus on addressing specific pain points in their development pipeline that you identified in your research.",
-  },
-  {
-    id: 2,
-    name: "Company B",
-    engagement: "High",
-    followUp:
-      "Send a detailed proposal with case studies from other financial institutions within 2 days. Their high engagement suggests immediate interest.",
-  },
-  {
-    id: 3,
-    name: "Company C",
-    engagement: "Medium",
-    followUp:
-      "Schedule a demo focusing on compliance features and patient data security. Wait 1 week before following up to give them time to review your initial email.",
-  },
-]
+const sampleData = {
+  name: "Tech Innovators",
+  engagement: "Medium",
+  followUp:
+    "Send a detailed proposal with case studies from other tech companies within 3 days. Address cost concerns by highlighting long-term savings and efficiency gains.",
+}
 
 export default function FollowUpPage() {
   const router = useRouter()
-  const [companies] = useState(sampleData)
+  const [company] = useState(sampleData)
 
   const getEngagementColor = (level: string) => {
     switch (level.toLowerCase()) {
@@ -61,37 +43,25 @@ export default function FollowUpPage() {
 
   return (
     <div className="container py-10">
-      <Card className="w-full">
+      <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle>Follow-Up Advice</CardTitle>
-          <CardDescription>
-            Personalized follow-up strategies to maximize engagement with your target companies
-          </CardDescription>
+          <CardDescription>Personalized follow-up strategy to maximize engagement with your prospect</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Company Name</TableHead>
-                  <TableHead>Engagement Level</TableHead>
-                  <TableHead>Follow-Up Advice</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {companies.map((company) => (
-                  <TableRow key={company.id}>
-                    <TableCell className="font-medium">{company.name}</TableCell>
-                    <TableCell>
-                      <Badge className={getEngagementColor(company.engagement)} variant="outline">
-                        {company.engagement}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{company.followUp}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="font-semibold">Company Name:</div>
+            <div>{company.name}</div>
+            <div className="font-semibold">Engagement Level:</div>
+            <div>
+              <Badge className={getEngagementColor(company.engagement)} variant="outline">
+                {company.engagement}
+              </Badge>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-semibold">Follow-Up Advice:</h3>
+            <p>{company.followUp}</p>
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">

@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 
 export default function ProcessingPage() {
   const router = useRouter()
@@ -20,10 +21,10 @@ export default function ProcessingPage() {
     <div className="container flex items-center justify-center min-h-screen">
       <Card className="w-full max-w-md">
         <CardContent className="flex flex-col items-center justify-center p-10 space-y-6">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <h2 className="text-2xl font-bold text-center">Generating personalized emails...</h2>
+          <Progress value={33} className="w-full" />
+          <h2 className="text-2xl font-bold text-center">Generating personalized email...</h2>
           <p className="text-center text-muted-foreground">
-            We're analyzing your company data and crafting personalized emails and follow-up strategies.
+            We're analyzing your prospect data and crafting a personalized email.
           </p>
         </CardContent>
       </Card>

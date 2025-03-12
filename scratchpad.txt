@@ -1,0 +1,164 @@
+ai_outreach/
+├── backend/
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py                 # FastAPI entry point
+│   │   ├── models/                 # Database models
+│   │   │   ├── __init__.py
+│   │   │   ├── prospect.py         # Prospect data model
+│   │   │   └── engagement.py       # Engagement history model
+│   │   ├── schemas/                # Pydantic schemas
+│   │   │   ├── __init__.py
+│   │   │   ├── prospect.py         # Prospect schema
+│   │   │   └── email.py            # Email schema
+│   │   ├── services/               # Business logic
+│   │   │   ├── __init__.py
+│   │   │   ├── ai_service.py       # AI personalization service
+│   │   │   ├── email_service.py    # Email sending service
+│   │   │   ├── call_service.py     # Cold call service (bonus)
+│   │   │   └── workflow_service.py # Workflow orchestration
+│   │   ├── routers/                # API routes
+│   │   │   ├── __init__.py
+│   │   │   ├── prospects.py        # Prospect management endpoints
+│   │   │   ├── emails.py           # Email endpoints
+│   │   │   └── calls.py            # Call endpoints (bonus)
+│   │   └── utils/                  # Utilities
+│   │       ├── __init__.py
+│   │       ├── templates.py        # Email templates
+│   │       └── ai_prompts.py       # AI prompt templates
+│   ├── tests/                      # Unit tests
+│   └── requirements.txt            # Dependencies
+├── frontend/                       # React frontend
+├── docker-compose.yml              # Container orchestration
+└── README.md                       # Project documentation
+
+
+
+Component Architecture Diagram:
+
++-------------------+     +-------------------+     +-------------------+
+|                   |     |                   |     |                   |
+|  User Interface   |---->|  FastAPI Backend  |---->|   AI Service      |
+|  (React)          |     |  (Orchestrator)   |     |   (OpenAI/GPT)    |
+|                   |     |                   |     |                   |
++-------------------+     +-------------------+     +-------------------+
+                               |        |
+                               |        |
+                 +-------------+        +-------------+
+                 |                                    |
+    +------------v----------+             +-----------v-----------+
+    |                       |             |                       |
+    |   Email Service       |             |   Database            |
+    |   (SendGrid/AWS SES)  |             |   (MongoDB/Postgres)  |
+    |                       |             |                       |
+    +-----------------------+             +-----------------------+
+                 ^                                    ^
+                 |                                    |
+                 |            +-----------+           |
+                 |            |           |           |
+                 +------------+ Workflow  +-----------+
+                              | Engine    |
+                              | (n8n)     |
+                              +-----------+
+
+
+
+Branching Logic Pipeline:
+
+Input: Prospect Data
+       (Company, Industry)
+            |
+            v
+     +-------------+
+     | Check       |
+     | Engagement  |<-----------------+
+     | History     |                  |
+     +-------------+                  |
+            |                         |
+            v                         |
+     +-------------+                  |
+     | Industry    |                  |
+     | Classification|                |
+     +-------------+                  |
+            |                         |
+         ---+---                      |
+        /   |   \                     |
+       /    |    \                    |
+      v     v     v                   |
+ +------+ +------+ +------+           |
+ | Tech | |Finance| |Health|  ...     |
+ +------+ +------+ +------+           |
+      |      |       |                |
+      v      v       v                |
+ +-------------------------------+    |
+ | Generate Personalized Content |    |
+ +-------------------------------+    |
+            |                         |
+            v                         |
+     +-------------+                  |
+     | Send Email/ |                  |
+     | Make Call   |                  |
+     +-------------+                  |
+            |                         |
+            v                         |
+     +-------------+                  |
+     | Record      |------------------+
+     | Engagement  |
+     +-------------+
+            |
+            v
+ Output: Personalized Email/Call Script
+         & Engagement Advice
+
+
+
+next-frontend/
+├── public/
+├── src/
+│   ├── app/
+│   │   ├── dashboard/
+│   │   │   └── page.tsx
+│   │   ├── prospects/
+│   │   │   ├── page.tsx
+│   │   │   └── [id]/
+│   │   │       └── page.tsx
+│   │   ├── emails/
+│   │   │   └── page.tsx
+│   │   ├── calls/
+│   │   │   └── page.tsx
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   │   ├── layout/
+│   │   │   ├── header.tsx
+│   │   │   ├── sidebar.tsx
+│   │   │   └── footer.tsx
+│   │   ├── prospects/
+│   │   │   ├── prospect-list.tsx
+│   │   │   ├── prospect-form.tsx
+│   │   │   └── import-prospects.tsx
+│   │   ├── emails/
+│   │   │   ├── email-generator.tsx
+│   │   │   └── email-preview.tsx
+│   │   ├── calls/
+│   │   │   ├── call-script-generator.tsx
+│   │   │   └── call-script-preview.tsx
+│   │   └── ui/
+│   │       ├── button.tsx
+│   │       ├── card.tsx
+│   │       ├── input.tsx
+│   │       └── select.tsx
+│   ├── hooks/
+│   │   ├── use-prospects.ts
+│   │   ├── use-emails.ts
+│   │   └── use-calls.ts
+│   ├── services/
+│   │   └── api.ts
+│   ├── types/
+│   │   └── index.ts
+│   └── utils/
+│       └── helpers.ts
+├── tailwind.config.js
+├── next.config.js
+├── package.json
+└── tsconfig.json

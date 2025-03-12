@@ -4,3 +4,9 @@ langchain-community
 langchain-groq
 python-dotenv
 pydantic
+fastapi
+uvicorn
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+sendgrid

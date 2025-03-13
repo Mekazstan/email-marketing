@@ -1,26 +1,134 @@
-# Email Marketing Agent
+# AI Outreach - Personalized Insurance Sales Platform
 
-### Problem:
-Cold emails and cold calls often suffer from low engagement rates because they lack personalization. A generic approach fails to resonate with different prospects. Prospects from different industries have unique concerns, and manual segmentation is slow, making it hard to scale outreach.
+AI Outreach is a personalized sales outreach platform designed specifically for insurance companies. It uses AI to generate highly personalized emails and call scripts based on each prospect's industry, engagement history, and likely objections.
 
-### Task:
-Develop an AI-driven cold email workflow for an insurance company that dynamically personalizes messages based on the prospect’s industry, engagement level, and potential objections.
+## Features
 
-- Input: A list of company names (prospects) and their respective fields (e.g., Engineering, Fashion, Commerce).
-- Output: A cold email tailored to the recipient’s industry, previous engagement level, and potential objections; and an advise to you on how to further engage the client.
+- **AI-Powered Personalization**: Generate industry-specific emails and call scripts
+- **Prospect Management**: Add, edit, and import prospects
+- **Engagement Tracking**: Track email opens, clicks, and responses
+- **Branching Logic**: Different content paths based on prospect attributes
+- **Dashboard**: Track performance and engagement metrics
 
-### Branching Logic:
-Industry-based Personalization
-- If the prospect is in tech, emphasize innovation.
-- If the prospect is in finance, emphasize security & ROI.
-- If the prospect is in healthcare, emphasize compliance & efficiency, etc.
+## Architecture
 
-Scoring (Total: 100 Marks):
-- Chain pipeline diagram in documentation (20 Marks) – Clearly illustrate how the branching logic is structured.
-- Ability to send the cold email (20 Marks) – Ensure the system can actually send emails.
-- Relevance of the email to the insurance industry & the prospect’s field (40 Marks) – The messaging should feel specific and valuable to the recipient.
-- User Experience (20 Marks) - Clarity, ease of use, and effectiveness of the system’s interface.
+![Component Architecture Diagram](https://your-repo-url/architecture.png)
 
-### Bonus Marks:
-- Cold Call Feature (+40 Marks): If the system can do a cold call instead of just an email (Second branch).
+### Branching Logic Pipeline
 
+Our system uses sophisticated branching logic to create personalized content:
+
+1. **Input**: Prospect data (company, industry)
+2. **Check Engagement History**: Analyze previous interactions
+3. **Industry Classification**: Identify industry-specific concerns
+4. **Industry-Specific Branches**:
+   - Tech: Emphasize innovation and digital protection
+   - Finance: Focus on security & ROI
+   - Healthcare: Address compliance & efficiency
+   - And more industry-specific paths
+5. **Generate Personalized Content**: Create tailored messaging
+6. **Send Email/Make Call**: Deliver the personalized content
+7. **Record Engagement**: Track interactions for future refinement
+8. **Output**: Personalized email/call script & engagement advice
+
+## Technology Stack
+
+- **Frontend**: Next.js, React, TypeScript, Tailwind CSS
+- **Backend**: FastAPI, Python
+- **Database**: PostgreSQL
+- **AI**: OpenAI GPT models
+- **Containerization**: Docker, Docker Compose
+
+## Getting Started
+
+### Prerequisites
+
+- Docker and Docker Compose
+- OpenAI API key
+- Email service API key (SendGrid, Mailgun, etc.)
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/ai-outreach.git
+   cd ai-outreach
+   ```
+
+2. Create a `.env` file with your API keys:
+   ```
+   OPENAI_API_KEY=your-openai-api-key
+   EMAIL_SERVICE_API_KEY=your-email-service-api-key
+   ```
+
+3. Build and start the application:
+   ```bash
+   ./deploy.sh
+   ```
+
+4. Access the application:
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:8000
+   - API Documentation: http://localhost:8000/docs
+
+### Development
+
+To run the application in development mode:
+
+1. Start the backend:
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   uvicorn app.main:app --reload
+   ```
+
+2. Start the frontend:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+## API Documentation
+
+When the backend is running, you can access the interactive API documentation at:
+http://localhost:8000/docs
+
+## Folder Structure
+
+```
+ai_outreach/
+├── backend/                 # FastAPI backend
+│   ├── app/                 # Application code
+│   │   ├── models/          # Database models
+│   │   ├── schemas/         # Pydantic schemas
+│   │   ├── services/        # Business logic
+│   │   ├── routers/         # API routes
+│   │   └── utils/           # Utilities
+│   ├── tests/               # Unit tests
+│   └── requirements.txt     # Dependencies
+├── frontend/                # Next.js frontend
+│   ├── src/                 # Source code
+│   │   ├── app/             # Next.js app directory
+│   │   ├── components/      # React components
+│   │   ├── hooks/           # Custom React hooks
+│   │   ├── services/        # API services
+│   │   ├── types/           # TypeScript types
+│   │   └── utils/           # Utility functions
+│   ├── public/              # Static files
+│   ├── tailwind.config.js   # Tailwind configuration
+│   └── package.json         # Dependencies
+├── docker-compose.yml       # Container orchestration
+└── .env                     # Environment variables
+```
+
+## License
+
+[MIT License](LICENSE)
+
+## Acknowledgements
+
+- OpenAI for GPT models
+- Next.js team for the React framework
+- FastAPI team for the Python API framework
+  

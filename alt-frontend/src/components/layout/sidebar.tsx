@@ -1,50 +1,52 @@
-import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { cn } from '../../utils/helpers';
 
-const Sidebar: React.FC = () => {
+const navigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: 'chart-pie' },
+  { name: 'Prospects', href: '/prospects', icon: 'users' },
+  { name: 'Emails', href: '/emails', icon: 'mail' },
+  { name: 'Calls', href: '/calls', icon: 'phone' },
+];
+
+export default function Sidebar() {
   const pathname = usePathname();
-  
-  const isActivePath = (path: string) => {
-    return pathname === path || pathname?.startsWith(`${path}/`);
-  };
-  
-  const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: 'chart-bar' },
-    { name: 'Prospects', path: '/prospects', icon: 'users' },
-    { name: 'Emails', path: '/emails', icon: 'mail' },
-    { name: 'Calls', path: '/calls', icon: 'phone' },
-    { name: 'Analytics', path: '/analytics', icon: 'chart-pie' },
-    { name: 'Settings', path: '/settings', icon: 'cog' },
-  ];
-  
-  return (
-    <aside className="bg-gray-800 text-white w-64 min-h-screen hidden md:block">
-      <div className="p-6">
-        <Link href="/" className="text-xl font-bold">
-          AI Outreach
-        </Link>
-      </div>
-      <nav className="mt-6">
-        <ul>
-          {navItems.map((item) => (
-            <li key={item.path}>
-              <Link 
-                href={item.path}
-                className={`
-                  flex items-center px-6 py-3 text-gray-300 hover:bg-gray-700 hover:text-white
-                  ${isActivePath(item.path) ? 'bg-gray-900 text-white' : ''}
-                `}
-              >
-                <span className="mr-3">{/* Icon would go here */}</span>
-                {item.name}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </aside>
-  );
-};
 
-export default Sidebar;
+  return (
+    <div className="flex flex-col w-64 border-r border-gray-200 bg-white">
+      <div className="h-0 flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+        <div className="flex-1 px-2 space-y-1 bg-white">
+          {navigation.map((item) => (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={cn(
+                pathname === item.href
+                  ? 'bg-gray-100 text-gray-900'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                'group flex items-center px-2 py-2 text-sm font-medium rounded-md'
+              )}
+            >
+              <svg 
+                className={cn(
+                  pathname === item.href 
+                    ? 'text-gray-500' 
+                    : 'text-gray-400 group-hover:text-gray-500',
+                  'mr-3 h-5 w-5'
+                )}
+                xmlns="http://www.w3.org/2000/svg" 
+                viewBox="0 0 20 20" 
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                {/* Simple icon placeholder - replace with actual icons in production */}
+                <rect x="3" y="3" width="14" height="14" rx="2" />
+              </svg>
+              {item.name}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

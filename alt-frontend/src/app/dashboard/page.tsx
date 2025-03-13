@@ -1,196 +1,162 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Card, CardHeader, CardBody, CardFooter } from '../../components/ui/card';
-import Button from '../../components/ui/button';
+import { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { useProspects } from '../../hooks/use-prospects';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const { prospects, loading, error } = useProspects();
   const [stats, setStats] = useState({
     totalProspects: 0,
-    byIndustry: {},
-    recentEmails: 0,
-    recentCalls: 0,
-    responseRate: 0,
+    byIndustry: {} as Record<string, number>,
+    withEmail: 0,
+    withPhone: 0
   });
 
   useEffect(() => {
-    if (!loading && prospects) {
-      // Calculate statistics
-      const industryCount = prospects.reduce((acc, prospect) => {
-        const industry = prospect.industry;
-        acc[industry] = (acc[industry] || 0) + 1;
-        return acc;
-      }, {});
+    if (!loading && !error && prospects.length > 0) {
+      const byIndustry: Record<string, number> = {};
+      let withEmail = 0;
+      let withPhone = 0;
+
+      prospects.forEach(prospect => {
+        // Count by industry
+        const industry = prospect.industry || 'Unknown';
+        byIndustry[industry] = (byIndustry[industry] || 0) + 1;
+
+        // Count contacts with email/phone
+        if (prospect.email) withEmail++;
+        if (prospect.phone) withPhone++;
+      });
 
       setStats({
         totalProspects: prospects.length,
-        byIndustry: industryCount,
-        recentEmails: Math.floor(Math.random() * prospects.length), // Mock data
-        recentCalls: Math.floor(Math.random() * prospects.length / 2), // Mock data
-        responseRate: Math.floor(Math.random() * 35) + 15, // Mock data: 15-50%
+        byIndustry,
+        withEmail,
+        withPhone
       });
     }
-  }, [loading, prospects]);
+  }, [prospects, loading, error]);
 
   if (loading) {
-    return <div className="p-8 text-center">Loading dashboard data...</div>;
+    return <div className="text-center py-10">Loading dashboard data...</div>;
   }
 
   if (error) {
-    return <div className="p-8 text-center text-red-500">Error: {error}</div>;
+    return <div className="text-center py-10 text-red-600">Error loading data: {error.message}</div>;
   }
 
+  // Sort industries by count (descending)
+  const sortedIndustries = Object.entries(stats.byIndustry)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5); // Top 5 industries
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-2">Overview of your outreach activities and prospects</p>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Dashboard</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-3xl font-bold">{stats.totalProspects}</div>
+            <p className="text-gray-500 mt-2">Total Prospects</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-3xl font-bold">{stats.withEmail}</div>
+            <p className="text-gray-500 mt-2">With Email ({Math.round((stats.withEmail / stats.totalProspects) * 100)}%)</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-3xl font-bold">{stats.withPhone}</div>
+            <p className="text-gray-500 mt-2">With Phone ({Math.round((stats.withPhone / stats.totalProspects) * 100)}%)</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-3xl font-bold">{Object.keys(stats.byIndustry).length}</div>
+            <p className="text-gray-500 mt-2">Industries</p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Link href="/prospects" className="block">
-          <Card className="h-full transform transition-transform hover:scale-105 hover:shadow-lg">
-            <CardBody className="flex flex-col items-center justify-center text-center py-8">
-              <div className="bg-blue-100 p-4 rounded-full mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-semibold">Manage Prospects</h2>
-              <p className="text-gray-600 mt-2">View, add, and edit your prospect list</p>
-            </CardBody>
-          </Card>
-        </Link>
-
-        <Link href="/emails" className="block">
-          <Card className="h-full transform transition-transform hover:scale-105 hover:shadow-lg">
-            <CardBody className="flex flex-col items-center justify-center text-center py-8">
-              <div className="bg-green-100 p-4 rounded-full mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-semibold">Generate Emails</h2>
-              <p className="text-gray-600 mt-2">Create and send personalized cold emails</p>
-            </CardBody>
-          </Card>
-        </Link>
-
-        <Link href="/calls" className="block">
-          <Card className="h-full transform transition-transform hover:scale-105 hover:shadow-lg">
-            <CardBody className="flex flex-col items-center justify-center text-center py-8">
-              <div className="bg-purple-100 p-4 rounded-full mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-semibold">Generate Call Scripts</h2>
-              <p className="text-gray-600 mt-2">Create personalized cold call scripts</p>
-            </CardBody>
-          </Card>
-        </Link>
-      </div>
-
-      {/* Statistics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold">Prospect Overview</h2>
+            <CardTitle>Prospects by Industry</CardTitle>
           </CardHeader>
-          <CardBody>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Total Prospects</span>
-                <span className="font-semibold text-xl">{stats.totalProspects}</span>
-              </div>
-              <h3 className="font-medium text-lg mt-2 mb-1">By Industry</h3>
-              <div className="space-y-2">
-                {Object.entries(stats.byIndustry).map(([industry, count]) => (
+          <CardContent>
+            {sortedIndustries.length > 0 ? (
+              <div className="space-y-4">
+                {sortedIndustries.map(([industry, count]) => (
                   <div key={industry} className="flex justify-between items-center">
-                    <span className="text-gray-600">{industry}</span>
-                    <span className="font-medium">{count as number}</span>
+                    <span className="text-gray-700">{industry}</span>
+                    <div className="flex items-center">
+                      <div className="w-48 bg-gray-200 rounded-full h-2.5 mr-2">
+                        <div 
+                          className="bg-blue-600 h-2.5 rounded-full" 
+                          style={{ width: `${Math.round((count / stats.totalProspects) * 100)}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-gray-500">{count}</span>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-          </CardBody>
-          <CardFooter className="bg-gray-50">
-            <Link href="/prospects">
-              <Button variant="outline" size="sm" className="w-full">View All Prospects</Button>
-            </Link>
-          </CardFooter>
+            ) : (
+              <p className="text-gray-500">No industry data available</p>
+            )}
+          </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold">Engagement Summary</h2>
+            <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
-          <CardBody>
+          <CardContent>
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Recent Emails Sent</span>
-                <span className="font-semibold text-xl">{stats.recentEmails}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Recent Calls Made</span>
-                <span className="font-semibold text-xl">{stats.recentCalls}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Response Rate</span>
-                <span className="font-semibold text-xl">{stats.responseRate}%</span>
-              </div>
-              <div className="mt-4">
-                <h3 className="font-medium text-lg mb-2">Recent Engagement</h3>
-                <div className="bg-gray-100 rounded p-4 text-center text-gray-500">
-                  Chart would go here in a real implementation
+              <Link href="/prospects/new">
+                <div className="p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors flex items-center">
+                  <div className="mr-3 bg-blue-100 p-2 rounded-full">
+                    <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </div>
+                  <span>Add New Prospect</span>
                 </div>
-              </div>
+              </Link>
+
+              <Link href="/prospects">
+                <div className="p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors flex items-center">
+                  <div className="mr-3 bg-green-100 p-2 rounded-full">
+                    <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </div>
+                  <span>Import Prospects</span>
+                </div>
+              </Link>
+
+              <Link href="/emails">
+                <div className="p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors flex items-center">
+                  <div className="mr-3 bg-purple-100 p-2 rounded-full">
+                    <svg className="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <span>Generate Personalized Email</span>
+                </div>
+              </Link>
             </div>
-          </CardBody>
-          <CardFooter className="bg-gray-50">
-            <Link href="/analytics">
-              <Button variant="outline" size="sm" className="w-full">View Detailed Analytics</Button>
-            </Link>
-          </CardFooter>
+          </CardContent>
         </Card>
       </div>
-
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <h2 className="text-xl font-semibold">Recent Activity</h2>
-        </CardHeader>
-        <CardBody>
-          <div className="space-y-4">
-            {/* This would be populated with actual activity data in a real implementation */}
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="border-b border-gray-200 pb-4 last:border-0 last:pb-0">
-                <div className="flex items-start">
-                  <div className={`rounded-full h-8 w-8 flex items-center justify-center mr-3 ${
-                    i % 3 === 0 ? 'bg-blue-100 text-blue-600' : 
-                    i % 3 === 1 ? 'bg-green-100 text-green-600' : 'bg-purple-100 text-purple-600'
-                  }`}>
-                    {i % 3 === 0 ? '📋' : i % 3 === 1 ? '📧' : '📞'}
-                  </div>
-                  <div>
-                    <p className="font-medium">
-                      {i % 3 === 0 ? 'New prospect added' : 
-                       i % 3 === 1 ? 'Email sent to TechCorp Inc.' : 'Call made to HealthPlus'}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(Date.now() - i * 3600000).toLocaleDateString()} | {new Date(Date.now() - i * 3600000).toLocaleTimeString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardBody>
-      </Card>
     </div>
   );
 }

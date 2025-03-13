@@ -1,188 +1,123 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import axios from 'axios';
+import { 
+  Prospect, 
+  ProspectCreate, 
+  ProspectImport, 
+  EmailGenerateResponse, 
+  EmailSendResponse,
+  CallScriptGenerateResponse,
+  CallMakeResponse,
+  CallOutcome
+} from '../types';
 
-export interface Prospect {
-  id: number;
-  company_name: string;
-  industry: string;
-  website?: string;
-  contact_person?: string;
-  email?: string;
-  phone?: string;
-  created_at: string;
-  updated_at: string;
-}
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-export interface EmailContent {
-  subject: string;
-  body: string;
-  metadata?: any;
-}
+const api = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-export interface EmailResponse {
-  prospect_id: number;
-  company_name: string;
-  industry: string;
-  email_subject: string;
-  email_body: string;
-  engagement_advice: string;
-  engagement_id?: number;
-  sent_at?: string;
-}
-
-export interface CallScriptResponse {
-  prospect_id: number;
-  company_name: string;
-  industry: string;
-  script_title: string;
-  script_content: string;
-  engagement_id?: number;
-  call_initiated_at?: string;
-}
-
-// Prospect API
-export const getProspects = async (industry?: string): Promise<Prospect[]> => {
-  const params = industry ? `?industry=${encodeURIComponent(industry)}` : '';
-  const response = await fetch(`${API_BASE_URL}/prospects${params}`);
+// Prospects API
+export const prospectsApi = {
+  getAll: async (skip = 0, limit = 100, industry?: string): Promise<Prospect[]> => {
+    const params = { skip, limit, ...(industry && { industry }) };
+    const response = await api.get('/prospects', { params });
+    return response.data;
+  },
   
-  if (!response.ok) {
-    throw new Error(`Error fetching prospects: ${response.statusText}`);
-  }
+  getById: async (id: number): Promise<Prospect> => {
+    const response = await api.get(`/prospects/${id}`);
+    return response.data;
+  },
   
-  return response.json();
+  create: async (prospect: ProspectCreate): Promise<Prospect> => {
+    const response = await api.post('/prospects', prospect);
+    return response.data;
+  },
+  
+  update: async (id: number, prospect: Partial<ProspectCreate>): Promise<Prospect> => {
+    const response = await api.put(`/prospects/${id}`, prospect);
+    return response.data;
+  },
+  
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/prospects/${id}`);
+  },
+  
+  importProspects: async (prospects: ProspectCreate[]): Promise<Prospect[]> => {
+    const response = await api.post('/prospects/import', { prospects });
+    return response.data;
+  },
+  
+  importCsv: async (file: File): Promise<Prospect[]> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await api.post('/prospects/import-csv', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    return response.data;
+  },
+  
+  classify: async (id: number): Promise<{ classification: string }> => {
+    const response = await api.get(`/prospects/${id}/classification`);
+    return response.data;
+  },
 };
 
-export const getProspect = async (id: number): Promise<Prospect> => {
-  const response = await fetch(`${API_BASE_URL}/prospects/${id}`);
+// Emails API
+export const emailsApi = {
+  generate: async (prospectId: number): Promise<EmailGenerateResponse> => {
+    const response = await api.post('/emails/generate', null, { params: { prospect_id: prospectId } });
+    return response.data;
+  },
   
-  if (!response.ok) {
-    throw new Error(`Error fetching prospect: ${response.statusText}`);
-  }
+  send: async (prospectId: number): Promise<EmailSendResponse> => {
+    const response = await api.post('/emails/send', null, { params: { prospect_id: prospectId } });
+    return response.data;
+  },
   
-  return response.json();
+  sendBatch: async (prospectIds: number[]): Promise<{ prospect_id: number, status: string }[]> => {
+    const response = await api.post('/emails/send-batch', { prospect_ids: prospectIds });
+    return response.data;
+  },
+  
+  getEngagement: async (engagementId: number): Promise<any> => {
+    const response = await api.get(`/emails/engagement/${engagementId}`);
+    return response.data;
+  },
+  
+  trackEngagement: async (engagementId: number, eventType: 'open' | 'click' | 'reply'): Promise<any> => {
+    const response = await api.post(`/emails/engagement/${engagementId}/track`, null, { params: { event_type: eventType } });
+    return response.data;
+  },
 };
 
-export const createProspect = async (prospect: Omit<Prospect, 'id' | 'created_at' | 'updated_at'>): Promise<Prospect> => {
-  const response = await fetch(`${API_BASE_URL}/prospects`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(prospect)
-  });
+// Calls API (Bonus Feature)
+export const callsApi = {
+  generateScript: async (prospectId: number): Promise<CallScriptGenerateResponse> => {
+    const response = await api.post('/calls/generate-script', null, { params: { prospect_id: prospectId } });
+    return response.data;
+  },
   
-  if (!response.ok) {
-    throw new Error(`Error creating prospect: ${response.statusText}`);
-  }
+  makeCall: async (prospectId: number): Promise<CallMakeResponse> => {
+    const response = await api.post('/calls/make-call', null, { params: { prospect_id: prospectId } });
+    return response.data;
+  },
   
-  return response.json();
+  updateOutcome: async (engagementId: number, outcome: CallOutcome): Promise<any> => {
+    const response = await api.post(`/calls/update-outcome`, outcome, { params: { engagement_id: engagementId } });
+    return response.data;
+  },
 };
 
-export const updateProspect = async (id: number, prospect: Partial<Prospect>): Promise<Prospect> => {
-  const response = await fetch(`${API_BASE_URL}/prospects/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(prospect)
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Error updating prospect: ${response.statusText}`);
-  }
-  
-  return response.json();
-};
-
-export const deleteProspect = async (id: number): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/prospects/${id}`, {
-    method: 'DELETE'
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Error deleting prospect: ${response.statusText}`);
-  }
-};
-
-export const importProspects = async (prospects: Array<Omit<Prospect, 'id' | 'created_at' | 'updated_at'>>): Promise<Prospect[]> => {
-  const response = await fetch(`${API_BASE_URL}/prospects/import`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prospects })
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Error importing prospects: ${response.statusText}`);
-  }
-  
-  return response.json();
-};
-
-// Email API
-export const generateEmail = async (prospectId: number): Promise<EmailResponse> => {
-  const response = await fetch(`${API_BASE_URL}/emails/generate?prospect_id=${prospectId}`);
-  
-  if (!response.ok) {
-    throw new Error(`Error generating email: ${response.statusText}`);
-  }
-  
-  return response.json();
-};
-
-export const sendEmail = async (prospectId: number): Promise<EmailResponse> => {
-  const response = await fetch(`${API_BASE_URL}/emails/send?prospect_id=${prospectId}`, {
-    method: 'POST'
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Error sending email: ${response.statusText}`);
-  }
-  
-  return response.json();
-};
-
-export const sendBatchEmails = async (prospectIds: number[]): Promise<any> => {
-  const response = await fetch(`${API_BASE_URL}/emails/send-batch`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prospect_ids: prospectIds })
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Error sending batch emails: ${response.statusText}`);
-  }
-  
-  return response.json();
-};
-
-// Call API (Bonus)
-export const generateCallScript = async (prospectId: number): Promise<CallScriptResponse> => {
-  const response = await fetch(`${API_BASE_URL}/calls/generate-script?prospect_id=${prospectId}`);
-  
-  if (!response.ok) {
-    throw new Error(`Error generating call script: ${response.statusText}`);
-  }
-  
-  return response.json();
-};
-
-export const makeCall = async (prospectId: number): Promise<CallScriptResponse> => {
-  const response = await fetch(`${API_BASE_URL}/calls/make-call?prospect_id=${prospectId}`, {
-    method: 'POST'
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Error making call: ${response.statusText}`);
-  }
-  
-  return response.json();
-};
-
-export const updateCallOutcome = async (engagementId: number, outcome: any): Promise<any> => {
-  const response = await fetch(`${API_BASE_URL}/calls/update-outcome?engagement_id=${engagementId}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(outcome)
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Error updating call outcome: ${response.statusText}`);
-  }
-  
-  return response.json();
+export default {
+  prospects: prospectsApi,
+  emails: emailsApi,
+  calls: callsApi,
 };

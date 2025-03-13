@@ -1,61 +1,59 @@
 import { useState } from 'react';
-import { generateCallScript, makeCall, updateCallOutcome, CallScriptResponse } from '../services/api';
+import { callsApi } from '../services/api';
+import { CallScriptGenerateResponse, CallMakeResponse, CallOutcome } from '../types';
 
 export const useCalls = () => {
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [scriptData, setScriptData] = useState<CallScriptResponse | null>(null);
+  const [generatedScript, setGeneratedScript] = useState<CallScriptGenerateResponse | null>(null);
+  const [callResult, setCallResult] = useState<CallMakeResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  const generateScript = async (prospectId: number) => {
+  const generateCallScript = async (prospectId: number) => {
+    setLoading(true);
     try {
-      setLoading(true);
+      const data = await callsApi.generateScript(prospectId);
+      setGeneratedScript(data);
       setError(null);
-      const data = await generateCallScript(prospectId);
-      setScriptData(data);
       return data;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err : new Error('Failed to generate call script'));
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const initiateCall = async (prospectId: number) => {
+  const makeCall = async (prospectId: number) => {
+    setLoading(true);
     try {
-      setLoading(true);
+      const data = await callsApi.makeCall(prospectId);
+      setCallResult(data);
       setError(null);
-      const data = await makeCall(prospectId);
-      setScriptData(data);
       return data;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err : new Error('Failed to make call'));
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const recordCallOutcome = async (engagementId: number, outcome: any) => {
+  const updateCallOutcome = async (engagementId: number, outcome: CallOutcome) => {
     try {
-      setLoading(true);
-      setError(null);
-      const data = await updateCallOutcome(engagementId, outcome);
-      return data;
+      return await callsApi.updateOutcome(engagementId, outcome);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err : new Error('Failed to update call outcome'));
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
   return {
+    generatedScript,
+    callResult,
     loading,
     error,
-    scriptData,
-    generateScript,
-    initiateCall,
-    recordCallOutcome
+    generateCallScript,
+    makeCall,
+    updateCallOutcome,
   };
 };

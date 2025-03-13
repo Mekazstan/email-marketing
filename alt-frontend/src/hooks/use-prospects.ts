@@ -1,97 +1,132 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getProspects, createProspect, updateProspect, deleteProspect, importProspects, Prospect } from '../services/api';
+import { prospectsApi } from '../services/api';
+import { Prospect, ProspectCreate } from '../types';
 
-export const useProspects = (initialIndustry?: string) => {
+export const useProspects = (initialSkip = 0, initialLimit = 100, initialIndustry?: string) => {
   const [prospects, setProspects] = useState<Prospect[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [industry, setIndustry] = useState<string | undefined>(initialIndustry);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [skip, setSkip] = useState(initialSkip);
+  const [limit, setLimit] = useState(initialLimit);
+  const [industry, setIndustry] = useState(initialIndustry);
 
   const fetchProspects = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
-      const data = await getProspects(industry);
+      const data = await prospectsApi.getAll(skip, limit, industry);
       setProspects(data);
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err : new Error('Failed to fetch prospects'));
     } finally {
       setLoading(false);
     }
-  }, [industry]);
+  }, [skip, limit, industry]);
 
   useEffect(() => {
     fetchProspects();
   }, [fetchProspects]);
 
-  const addProspect = async (prospect: Omit<Prospect, 'id' | 'created_at' | 'updated_at'>) => {
+  const createProspect = async (prospect: ProspectCreate) => {
     try {
-      setLoading(true);
-      const newProspect = await createProspect(prospect);
-      setProspects([...prospects, newProspect]);
+      const newProspect = await prospectsApi.create(prospect);
+      setProspects(prevProspects => [...prevProspects, newProspect]);
       return newProspect;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err : new Error('Failed to create prospect'));
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
-  const editProspect = async (id: number, prospect: Partial<Prospect>) => {
+  const updateProspect = async (id: number, prospect: Partial<ProspectCreate>) => {
     try {
-      setLoading(true);
-      const updatedProspect = await updateProspect(id, prospect);
-      setProspects(prospects.map(p => p.id === id ? updatedProspect : p));
+      const updatedProspect = await prospectsApi.update(id, prospect);
+      setProspects(prevProspects =>
+        prevProspects.map(p => (p.id === id ? updatedProspect : p))
+      );
       return updatedProspect;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err : new Error('Failed to update prospect'));
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
-  const removeProspect = async (id: number) => {
+  const deleteProspect = async (id: number) => {
     try {
-      setLoading(true);
-      await deleteProspect(id);
-      setProspects(prospects.filter(p => p.id !== id));
+      await prospectsApi.delete(id);
+      setProspects(prevProspects => prevProspects.filter(p => p.id !== id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err : new Error('Failed to delete prospect'));
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
-  const bulkImport = async (importedProspects: Array<Omit<Prospect, 'id' | 'created_at' | 'updated_at'>>) => {
+  const importProspects = async (prospectsToImport: ProspectCreate[]) => {
     try {
-      setLoading(true);
-      const newProspects = await importProspects(importedProspects);
-      setProspects([...prospects, ...newProspects]);
-      return newProspects;
+      const importedProspects = await prospectsApi.importProspects(prospectsToImport);
+      setProspects(prevProspects => [...prevProspects, ...importedProspects]);
+      return importedProspects;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err : new Error('Failed to import prospects'));
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
-  const filterByIndustry = (newIndustry?: string) => {
-    setIndustry(newIndustry);
+  const importCsv = async (file: File) => {
+    try {
+      const importedProspects = await prospectsApi.importCsv(file);
+      setProspects(prevProspects => [...prevProspects, ...importedProspects]);
+      return importedProspects;
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to import CSV'));
+      throw err;
+    }
   };
 
   return {
     prospects,
     loading,
     error,
-    addProspect,
-    editProspect,
-    removeProspect,
-    bulkImport,
-    filterByIndustry,
-    refresh: fetchProspects
+    fetchProspects,
+    createProspect,
+    updateProspect,
+    deleteProspect,
+    importProspects,
+    importCsv,
+    setSkip,
+    setLimit,
+    setIndustry,
+  };
+};
+
+export const useProspect = (id: number) => {
+  const [prospect, setProspect] = useState<Prospect | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchProspect = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await prospectsApi.getById(id);
+      setProspect(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(`Failed to fetch prospect with id ${id}`));
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      fetchProspect();
+    }
+  }, [id, fetchProspect]);
+
+  return {
+    prospect,
+    loading,
+    error,
+    refetch: fetchProspect,
   };
 };

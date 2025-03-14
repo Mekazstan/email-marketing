@@ -7,3 +7,5 @@ python-dotenv
 openai
 twilio
 sendgrid
+pymysql
+cryptography

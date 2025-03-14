@@ -4,7 +4,8 @@ from sqlalchemy.orm import sessionmaker
 import os
 
 # DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost/ai_outreach")
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./app.db")
+# URL for MySQL database
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:password@localhost/ai_outreach")
 
 
 engine = create_engine(DATABASE_URL)

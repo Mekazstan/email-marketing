@@ -1,11 +1,11 @@
 import os
-from dotenv import load_env
+from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain.schema.output_parser import StrOutputParser
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema.runnable import RunnableBranch
 
-load_env()
+load_dotenv()
 GROQ_API_KEY= os.getenv("GROQ_API_KEY")
 
 llm = ChatGroq(
@@ -18,7 +18,7 @@ llm = ChatGroq(
 
 tech_template = ChatPromptTemplate.from_messages(
     [
-        ("system", "You are an AI assistant crafting cold emails for an insurance company. Emphasize innovation and risk management for tech companies. Address engagement level and potential objections."),
+        ("system", "You are an AI assistant crafting cold emails for an insurance company. Emphasize on innovation and risk management for tech companies. Address engagement level and potential objections."),
         ("human", """
             Write a cold email for a tech company about our insurance solutions:
             - Company Name: {company_name}
@@ -31,7 +31,7 @@ tech_template = ChatPromptTemplate.from_messages(
 
 finance_template = ChatPromptTemplate.from_messages(
     [
-        ("system", "You are an AI assistant crafting cold emails for an insurance company. Emphasize security, ROI, and financial risk mitigation for finance companies. Address engagement level and potential objections."),
+        ("system", "You are an AI assistant crafting cold emails for an insurance company. Emphasize on security, ROI, and financial risk mitigation for finance companies. Address engagement level and potential objections."),
         ("human", """
             Write a cold email for a finance company about our insurance solutions:
             - Company Name: {company_name}
@@ -44,7 +44,7 @@ finance_template = ChatPromptTemplate.from_messages(
 
 healthcare_template = ChatPromptTemplate.from_messages(
     [
-        ("system", "You are an AI assistant crafting cold emails for an insurance company. Emphasize compliance, efficiency, and patient safety for healthcare companies. Address engagement level and potential objections."),
+        ("system", "You are an AI assistant crafting cold emails for an insurance company. Emphasize on compliance, efficiency, and patient safety for healthcare companies. Address engagement level and potential objections."),
         ("human", """
             Write a cold email for a healthcare company about our insurance solutions:
             - Company Name: {company_name}

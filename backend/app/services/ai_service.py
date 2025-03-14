@@ -14,7 +14,7 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 # Initialize ChatGroq
 llm = ChatGroq(
     model="llama3-8b-8192",
-    temperature=0.5,
+    temperature=0.3,
     max_tokens=None,
     timeout=None,
     max_retries=2
@@ -205,7 +205,7 @@ class AIService:
                 5. Call to action: {call_to_action}
                 6. Professional signature
                 
-                Keep the email concise (150-200 words), professional, and focused on value.
+                Keep the email concise (250-300 words), professional, and focused on value.
                 
                 Output format:
                 {{"subject": "Email subject line", "body": "Full email body"}}

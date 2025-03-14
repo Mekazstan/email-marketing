@@ -26,7 +26,7 @@ async def generate_email(prospect_id: int, db: Session = Depends(get_db)):
         result = await workflow_service.process_prospect(db, prospect_id)
         
         # Clean up the email body by stripping unnecessary whitespace and newlines
-        email_body = textwrap.fill(result["email_content"]["body"].strip(), width=80)
+        email_body = textwrap.fill(result["email_content"]["body"].strip())
         
         return {
             "prospect_id": prospect_id,

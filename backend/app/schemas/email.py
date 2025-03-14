@@ -27,7 +27,7 @@ class EmailResponse(BaseModel):
     personalization_data: Optional[Dict] = None
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class EmailBulkRequest(BaseModel):
     prospect_ids: List[int]

@@ -1,6 +1,7 @@
-langchain
-langchain-core
-langchain-community
-langchain-groq
-python-dotenv
+sqlalchemy
+uvicorn
+fastapi
 pydantic
+openai
+twilio
+sendgrid

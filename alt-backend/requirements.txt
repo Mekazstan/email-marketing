@@ -1,7 +1,0 @@
-sqlalchemy
-uvicorn
-fastapi
-pydantic
-openai
-twilio
-sendgrid

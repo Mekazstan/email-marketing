@@ -10,7 +10,7 @@ import {
   CallOutcome
 } from '../types';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://email-marketing-9hnp.onrender.com';
 
 const api = axios.create({
   baseURL: BASE_URL,

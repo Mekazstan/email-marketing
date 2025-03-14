@@ -3,6 +3,7 @@ from typing import List
 from sqlalchemy.orm import Session
 import csv
 from io import StringIO
+from pydantic import HttpUrl
 
 from app.database import get_db
 from app.models.prospect import Prospect
@@ -30,8 +31,13 @@ async def create_prospect(prospect_data: ProspectCreate, db: Session = Depends(g
             detail=f"Prospect with company name {prospect_data.company_name} already exists"
         )
     
+    # Convert HttpUrl to string if website is provided
+    prospect_dict = prospect_data.dict()
+    if isinstance(prospect_dict.get("website"), HttpUrl):
+        prospect_dict["website"] = str(prospect_dict["website"])
+    
     # Create new prospect
-    prospect = Prospect(**prospect_data.dict())
+    prospect = Prospect(**prospect_dict)
     db.add(prospect)
     db.commit()
     db.refresh(prospect)
@@ -126,8 +132,13 @@ async def import_prospects(prospect_data: ProspectImport, db: Session = Depends(
         if existing_prospect:
             continue
         
+        # Convert HttpUrl to string if website is provided
+        prospect_dict = p_data.dict()
+        if isinstance(prospect_dict.get("website"), HttpUrl):
+            prospect_dict["website"] = str(prospect_dict["website"])
+        
         # Create new prospect
-        prospect = Prospect(**p_data.dict())
+        prospect = Prospect(**prospect_dict)
         db.add(prospect)
         created_prospects.append(prospect)
     
@@ -163,11 +174,21 @@ async def import_prospects_csv(
         if existing_prospect:
             continue
         
+        # Convert website to string if it exists
+        website = row.get("website")
+        if website:
+            try:
+                # If the website is already a string, this will work fine
+                website = str(HttpUrl(website))
+            except ValueError:
+                # Handle invalid URLs if necessary
+                website = None
+        
         # Create new prospect
         prospect = Prospect(
             company_name=row["company_name"],
             industry=row["industry"],
-            website=row.get("website"),
+            website=website,
             contact_person=row.get("contact_person"),
             email=row.get("email"),
             phone=row.get("phone")

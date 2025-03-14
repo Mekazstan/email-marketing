@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from typing import List, Dict
 from sqlalchemy.orm import Session
+import textwrap
 
 from app.database import get_db
 from app.models.prospect import Prospect
@@ -24,12 +25,15 @@ async def generate_email(prospect_id: int, db: Session = Depends(get_db)):
     try:
         result = await workflow_service.process_prospect(db, prospect_id)
         
+        # Clean up the email body by stripping unnecessary whitespace and newlines
+        email_body = textwrap.fill(result["email_content"]["body"].strip(), width=80)
+        
         return {
             "prospect_id": prospect_id,
             "company_name": result["prospect"].company_name,
             "industry": result["prospect"].industry,
             "email_subject": result["email_content"]["subject"],
-            "email_body": result["email_content"]["body"],
+            "email_body": email_body,
             "engagement_advice": result["engagement_advice"]
         }
     except ValueError as e:

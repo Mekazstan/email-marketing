@@ -1,16 +1,29 @@
-import openai
-from typing import Dict, List, Optional
 import os
+from dotenv import load_dotenv
+from langchain_groq import ChatGroq
+from langchain.schema.output_parser import StrOutputParser
+from langchain.prompts import ChatPromptTemplate
+from typing import Dict, List
 from app.models.prospect import Prospect
 from app.models.engagement import Engagement
 
-# Set OpenAI API key
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Load environment variables
+load_dotenv()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+# Initialize ChatGroq
+llm = ChatGroq(
+    model="llama3-8b-8192",
+    temperature=0.5,
+    max_tokens=None,
+    timeout=None,
+    max_retries=2
+)
 
 
 class AIService:
     def __init__(self):
-        self.model = "gpt-4"  # You can change this to the model you prefer
+        self.llm = llm
     
     def _get_industry_specifics(self, industry: str) -> Dict:
         """
@@ -158,75 +171,75 @@ class AIService:
         objections = next((v for k, v in potential_objections.items() if k in industry_lower), 
                          ["We already have insurance", "It's too expensive", "We don't see the value"])
         
-        # Prepare the prompt for the AI
-        prompt = f"""
-        Generate a personalized cold email for an insurance company reaching out to {prospect.company_name} in the {prospect.industry} industry.
+        # Define the prompt template
+        email_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", "You are an expert in writing personalized insurance sales outreach emails."),
+                ("human", """
+                Generate a personalized cold email for an insurance company reaching out to {company_name} in the {industry} industry.
+                
+                Company details:
+                - Name: {company_name}
+                - Industry: {industry}
+                - Contact Person: {contact_person}
+                
+                Approach: {approach}
+                Tone: {tone}
+                Focus: {focus}
+                
+                Industry-specific information:
+                - Keywords to emphasize: {keywords}
+                - Industry pain points to address: {pain_points}
+                - Selling points to highlight: {selling_points}
+                
+                Address these potential objections subtly:
+                - {objection1}
+                - {objection2}
+                - {objection3}
+                
+                Email structure:
+                1. Personalized greeting
+                2. Industry-specific hook relating to insurance needs
+                3. Value proposition tailored to their industry
+                4. Specific offering addressing their potential pain points
+                5. Call to action: {call_to_action}
+                6. Professional signature
+                
+                Keep the email concise (150-200 words), professional, and focused on value.
+                
+                Output format:
+                {{"subject": "Email subject line", "body": "Full email body"}}
+                """)
+            ]
+        )
         
-        Company details:
-        - Name: {prospect.company_name}
-        - Industry: {prospect.industry}
-        - Contact Person: {prospect.contact_person or "Decision Maker"}
+        # Prepare the input for the prompt
+        input_data = {
+            "company_name": prospect.company_name,
+            "industry": prospect.industry,
+            "contact_person": prospect.contact_person or "Decision Maker",
+            "approach": engagement_approach["approach"],
+            "tone": engagement_approach["tone"],
+            "focus": engagement_approach["focus"],
+            "keywords": ", ".join(industry_specifics["keywords"]),
+            "pain_points": ", ".join(industry_specifics["pain_points"]),
+            "selling_points": ", ".join(industry_specifics["selling_points"]),
+            "objection1": objections[0],
+            "objection2": objections[1],
+            "objection3": objections[2],
+            "call_to_action": engagement_approach["call_to_action"]
+        }
         
-        Approach: {engagement_approach["approach"]}
-        Tone: {engagement_approach["tone"]}
-        Focus: {engagement_approach["focus"]}
-        
-        Industry-specific information:
-        - Keywords to emphasize: {", ".join(industry_specifics["keywords"])}
-        - Industry pain points to address: {", ".join(industry_specifics["pain_points"])}
-        - Selling points to highlight: {", ".join(industry_specifics["selling_points"])}
-        
-        Address these potential objections subtly:
-        - {objections[0]}
-        - {objections[1]}
-        - {objections[2]}
-        
-        Email structure:
-        1. Personalized greeting
-        2. Industry-specific hook relating to insurance needs
-        3. Value proposition tailored to their industry
-        4. Specific offering addressing their potential pain points
-        5. Call to action: {engagement_approach["call_to_action"]}
-        6. Professional signature
-        
-        Keep the email concise (150-200 words), professional, and focused on value.
-        
-        Output format:
-        {{"subject": "Email subject line", "body": "Full email body"}}
-        """
+        # Create the chain
+        email_chain = email_prompt | self.llm | StrOutputParser()
         
         try:
-            response = await openai.ChatCompletion.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": "You are an expert in writing personalized insurance sales outreach emails."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=800
-            )
+            # Generate the email
+            email_content = await email_chain.ainvoke(input_data)
             
-            # Parse the response
-            content = response.choices[0].message.content
-            
-            # Extract JSON from the content - if the AI didn't return proper JSON,
-            # we'll need to parse it
+            # Parse the response (assuming it's JSON)
             import json
-            import re
-            
-            # Try to extract JSON if it's embedded in the text
-            json_match = re.search(r'\{.*\}', content, re.DOTALL)
-            if json_match:
-                email_data = json.loads(json_match.group(0))
-            else:
-                # If no JSON found, try to extract subject and body manually
-                subject_match = re.search(r'subject[:"]*([^"]*)["\n]', content, re.IGNORECASE)
-                body_match = re.search(r'body[:"]*([^"]*)["\n]', content, re.IGNORECASE | re.DOTALL)
-                
-                email_data = {
-                    "subject": subject_match.group(1).strip() if subject_match else "Insurance Solution for " + prospect.company_name,
-                    "body": body_match.group(1).strip() if body_match else content
-                }
+            email_data = json.loads(email_content)
             
             # Add metadata for further personalization and tracking
             email_data["metadata"] = {
@@ -260,35 +273,43 @@ class AIService:
         """
         Generate advice for the sales rep on how to further engage with this prospect.
         """
-        prompt = f"""
-        Provide brief, practical advice for a sales representative on how to follow up with this prospect after sending them an email:
+        advice_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", "You are an expert sales coach specializing in insurance sales."),
+                ("human", """
+                Provide brief, practical advice for a sales representative on how to follow up with this prospect after sending them an email:
+                
+                Company: {company_name}
+                Industry: {industry}
+                Email Subject: {email_subject}
+                Email Focus: {email_focus}
+                
+                Your advice should include:
+                1. When to follow up (timing)
+                2. Best channel for follow-up (phone, email, LinkedIn)
+                3. Talking points tailored to their industry
+                4. How to handle likely objections
+                
+                Keep it concise and actionable, under 100 words.
+                """)
+            ]
+        )
         
-        Company: {prospect.company_name}
-        Industry: {prospect.industry}
-        Email Subject: {email_content['subject']}
-        Email Focus: {email_content['metadata']['engagement_approach']['focus'] if 'metadata' in email_content else 'introduction'}
+        # Prepare the input for the prompt
+        input_data = {
+            "company_name": prospect.company_name,
+            "industry": prospect.industry,
+            "email_subject": email_content["subject"],
+            "email_focus": email_content["metadata"]["engagement_approach"]["focus"] if "metadata" in email_content else "introduction"
+        }
         
-        Your advice should include:
-        1. When to follow up (timing)
-        2. Best channel for follow-up (phone, email, LinkedIn)
-        3. Talking points tailored to their industry
-        4. How to handle likely objections
-        
-        Keep it concise and actionable, under 100 words.
-        """
+        # Create the chain
+        advice_chain = advice_prompt | self.llm | StrOutputParser()
         
         try:
-            response = await openai.ChatCompletion.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": "You are an expert sales coach specializing in insurance sales."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=150
-            )
-            
-            return response.choices[0].message.content
+            # Generate the advice
+            advice = await advice_chain.ainvoke(input_data)
+            return advice
             
         except Exception as e:
             print(f"Error generating engagement advice: {e}")

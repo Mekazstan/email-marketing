@@ -1,18 +1,33 @@
 import os
 from typing import Dict, List, Optional
-import sendgrid
-from sendgrid.helpers.mail import Mail, Email, To, Content, TrackingSettings, ClickTracking, OpenTracking
+from fastapi_mail import FastMail, ConnectionConfig, MessageSchema, MessageType
 from datetime import datetime
 from app.models.prospect import Prospect
 from app.models.engagement import Engagement
 from sqlalchemy.orm import Session
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 class EmailService:
     def __init__(self):
-        self.sg = sendgrid.SendGridAPIClient(api_key=os.getenv("SENDGRID_API_KEY"))
-        self.from_email = os.getenv("FROM_EMAIL", "insurance@youragency.com")
-        self.from_name = os.getenv("FROM_NAME", "Insurance Specialist")
+        # Initialize FastAPI-Mail configuration
+        self.mail_config = ConnectionConfig(
+            MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
+            MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
+            MAIL_FROM=os.getenv("FROM_EMAIL", "insurance@youragency.com"),
+            MAIL_FROM_NAME=os.getenv("FROM_NAME", "Insurance Specialist"),
+            MAIL_PORT=int(os.getenv("MAIL_PORT", 587)),
+            MAIL_SERVER=os.getenv("MAIL_SERVER", "smtp.yourmailserver.com"),
+            MAIL_STARTTLS=True,
+            MAIL_SSL_TLS=False,
+            USE_CREDENTIALS=True,
+            VALIDATE_CERTS=True,
+        )
+        self.fast_mail = FastMail(config=self.mail_config)
     
     async def send_email(self, db: Session, prospect: Prospect, email_content: Dict) -> Engagement:
         """
@@ -21,25 +36,20 @@ class EmailService:
         if not prospect.email:
             raise ValueError(f"No email address for prospect: {prospect.company_name}")
         
-        # Create tracking settings
-        tracking_settings = TrackingSettings()
-        tracking_settings.click_tracking = ClickTracking(enable=True, enable_text=True)
-        tracking_settings.open_tracking = OpenTracking(enable=True)
-        
         # Create the email message
-        message = Mail(
-            from_email=Email(self.from_email, self.from_name),
-            to_emails=To(prospect.email, prospect.contact_person),
+        message = MessageSchema(
+            recipients=[prospect.email],
             subject=email_content["subject"],
-            html_content=Content("text/html", self._format_html_email(email_content["body"]))
+            body=self._format_html_email(email_content["body"]),
+            subtype=MessageType.html
         )
-        
-        message.tracking_settings = tracking_settings
         
         try:
             # Send the email
-            response = self.sg.send(message)
-            print(f"Email sent to {prospect.email}, Status Code: {response.status_code}")
+            logger.debug(f"Sending email to {prospect.email} with subject: {email_content['subject']}")
+            response = await self.fast_mail.send_message(message)
+            print(f"Email sent to {prospect.email}")
+            logger.debug(f"Email sent successfully to {prospect.email}")
             
             # Record the engagement
             engagement = Engagement(
@@ -88,10 +98,10 @@ class EmailService:
                 {body_html}
                 
                 <div class="signature">
-                    <strong>{self.from_name}</strong><br>
+                    <strong>{os.getenv("FROM_NAME", "Insurance Specialist")}</strong><br>
                     Insurance Specialist<br>
                     Phone: {os.getenv("CONTACT_PHONE", "(555) 123-4567")}<br>
-                    Email: {self.from_email}
+                    Email: {os.getenv("FROM_EMAIL", "insurance@youragency.com")}
                 </div>
                 
                 <div class="footer">

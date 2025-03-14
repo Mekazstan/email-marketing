@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Dict
 from sqlalchemy.orm import Session
+import textwrap
 
 from app.database import get_db
 from app.models.prospect import Prospect
@@ -37,12 +38,14 @@ async def generate_call_script(prospect_id: int, db: Session = Depends(get_db)):
         # Generate call script
         script_content = await call_service.generate_call_script(prospect, engagement_history)
         
+        script_content = textwrap.fill(script_content["script"].strip(), width=80)
+        
         return {
             "prospect_id": prospect_id,
             "company_name": prospect.company_name,
             "industry": prospect.industry,
             "script_title": script_content["title"],
-            "script_content": script_content["script"]
+            "script_content": script_content
         }
     except ValueError as e:
         raise HTTPException(

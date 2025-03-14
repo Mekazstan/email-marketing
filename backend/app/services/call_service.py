@@ -3,10 +3,27 @@ from typing import Dict, List, Optional
 from twilio.rest import Client
 import json
 from datetime import datetime
+from dotenv import load_dotenv
 from app.models.prospect import Prospect
 from app.models.engagement import Engagement
 from sqlalchemy.orm import Session
 from app.services.ai_service import AIService
+from langchain_groq import ChatGroq
+from langchain.schema.output_parser import StrOutputParser
+from langchain.prompts import ChatPromptTemplate
+
+# Load environment variables
+load_dotenv()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+# Initialize ChatGroq
+llm = ChatGroq(
+    model="llama3-8b-8192",
+    temperature=0.5,
+    max_tokens=None,
+    timeout=None,
+    max_retries=2
+)
 
 
 class CallService:
@@ -17,6 +34,7 @@ class CallService:
         self.client = Client(account_sid, auth_token)
         self.from_phone = os.getenv("FROM_PHONE")
         self.ai_service = AIService()
+        self.llm = llm
     
     async def generate_call_script(self, prospect: Prospect, engagement_history: List[Engagement]) -> Dict:
         """
@@ -31,47 +49,59 @@ class CallService:
         # Get engagement-based approach
         engagement_approach = self.ai_service._get_engagement_approach(engagement_history)
         
-        # Prepare the prompt for the AI
-        prompt = f"""
-        Generate a brief cold call script for an insurance sales representative calling {prospect.company_name} in the {prospect.industry} industry.
+        # Define the prompt template
+        call_script_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", "You are an expert in writing effective cold call scripts for insurance sales."),
+                ("human", """
+                Generate a brief cold call script for an insurance sales representative calling {company_name} in the {industry} industry.
+                
+                Company details:
+                - Name: {company_name}
+                - Industry: {industry}
+                - Contact Person: {contact_person}
+                
+                Approach: {approach}
+                Tone: {tone}
+                Focus: {focus}
+                
+                Industry-specific information:
+                - Keywords to emphasize: {keywords}
+                - Industry pain points to address: {pain_points}
+                - Selling points to highlight: {selling_points}
+                
+                The script should include:
+                1. Introduction and purpose of the call
+                2. Industry-specific hook
+                3. Key qualifying questions
+                4. Addressing potential objections
+                5. Call to action/next steps
+                
+                Format the script with clear sections for each part of the conversation and include [[PAUSE]] where the representative should wait for a response.
+                Keep it conversational, natural, and under 400 words.
+                """)
+            ]
+        )
         
-        Company details:
-        - Name: {prospect.company_name}
-        - Industry: {prospect.industry}
-        - Contact Person: {prospect.contact_person or "Decision Maker"}
+        # Prepare the input for the prompt
+        input_data = {
+            "company_name": prospect.company_name,
+            "industry": prospect.industry,
+            "contact_person": prospect.contact_person or "Decision Maker",
+            "approach": engagement_approach["approach"],
+            "tone": engagement_approach["tone"],
+            "focus": engagement_approach["focus"],
+            "keywords": ", ".join(industry_specifics["keywords"]),
+            "pain_points": ", ".join(industry_specifics["pain_points"]),
+            "selling_points": ", ".join(industry_specifics["selling_points"])
+        }
         
-        Approach: {engagement_approach["approach"]}
-        Tone: {engagement_approach["tone"]}
-        Focus: {engagement_approach["focus"]}
-        
-        Industry-specific information:
-        - Keywords to emphasize: {", ".join(industry_specifics["keywords"])}
-        - Industry pain points to address: {", ".join(industry_specifics["pain_points"])}
-        - Selling points to highlight: {", ".join(industry_specifics["selling_points"])}
-        
-        The script should include:
-        1. Introduction and purpose of the call
-        2. Industry-specific hook
-        3. Key qualifying questions
-        4. Addressing potential objections
-        5. Call to action/next steps
-        
-        Format the script with clear sections for each part of the conversation and include [[PAUSE]] where the representative should wait for a response.
-        Keep it conversational, natural, and under 400 words.
-        """
+        # Create the chain
+        call_script_chain = call_script_prompt | self.llm | StrOutputParser()
         
         try:
-            response = await openai.ChatCompletion.create(
-                model=self.ai_service.model,
-                messages=[
-                    {"role": "system", "content": "You are an expert in writing effective cold call scripts for insurance sales."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=600
-            )
-            
-            script = response.choices[0].message.content
+            # Generate the call script
+            script = await call_script_chain.ainvoke(input_data)
             
             return {
                 "title": f"Call Script for {prospect.company_name}",
